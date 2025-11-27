@@ -5,8 +5,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "debug": "nodemon",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "db:setup": "ts-node db/scripts/runDatabaseSetup.ts"
   },
   "keywords": [],
   "author": "",
@@ -14,14 +16,19 @@
   "packageManager": "pnpm@10.13.1",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.16.3"
+    "nodemon": "^3.1.11",
+    "pg": "^8.16.3",
+    "ts-node": "^10.9.2"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
     "@types/node": "^24.10.1",
+    "@types/pg": "^8.15.6",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3"
   }

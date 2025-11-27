@@ -1,3 +1,5 @@
+.vscode
+.sqllsrc.json
 # Logs
 logs
 *.log

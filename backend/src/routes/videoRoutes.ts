@@ -1,85 +1,170 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
+import { getAllVideos, getVideoById } from '../modules/videos/videoRepository';
 
-export const videoRouter = Router();
+export const videoRouter: Router = Router();
 
-videoRouter.get('/:videoId/stream', (request, response) => {
+/**
+ * GET /api/videos
+ * Return a list of videos for the catalog.
+ */
+videoRouter.get('/', async (request: Request, response: Response) => {
   try {
-    const mediaDirectory = process.env.MEDIA_DIRECTORY || './media';
+    const videoRecords = await getAllVideos();
 
-    const sampleVideoFileName = 'sample.mp4';
-    const videoFilePath = path.join(mediaDirectory, sampleVideoFileName);
+    const videoSummaries = videoRecords.map((videoRecord) => ({
+      id: videoRecord.id,
+      title: videoRecord.title,
+      thumbnailUrl: videoRecord.thumbnailUrl,
+      genres: videoRecord.genres,
+    }));
 
-    if (!fs.existsSync(videoFilePath)) {
-      response.status(404).json({ error: 'Video file not found on server' });
-      return;
-    }
-    const rangeHeader = request.headers.range;
-
-    if (!rangeHeader) {
-      response.status(400).send('Range header is required');
-      return;
-    }
-
-    const videoFileStat = fs.statSync(videoFilePath);
-    const videoFileSize = videoFileStat.size;
-
-    const bytesPrefix = 'bytes=';
-    // Example Range header: "bytes=0-" or "bytes=1000-2000"
-    if (!rangeHeader.startsWith(bytesPrefix)) {
-      response.status(400).send('Invalid Range header format');
-      return;
-    }
-
-    const rangeParts = rangeHeader.replace(bytesPrefix, '');
-    const [startString, endString] = rangeParts.split('-');
-
-    const startByte = Number(startString);
-    const chunkSize = 1_000_000; //1 mb chunks
-
-    let endByte: number;
-
-    if (endString) {
-      endByte = Number(endString);
-    } else {
-      endByte = Math.min(startByte + chunkSize, videoFileSize - 1);
-    }
-
-    if (startByte >= videoFileSize || endByte >= videoFileSize) {
-      response
-        .status(416)
-        .send(
-          `Request range not satisfiable: ${startByte}-${endByte}/${videoFileSize}`,
-        );
-      return;
-    }
-
-    const contentLength = endByte - startByte + 1;
-
-    response.writeHead(206, {
-      'content-range': `bytes ${startByte}-${endByte}/${videoFileSize}`,
-      'accept-ranges': `bytes`,
-      'content-length': contentLength,
-      'content-type': 'video/mp4',
-    });
-
-    const videoReadStream = fs.createReadStream(videoFilePath, {
-      start: startByte,
-      end: endByte,
-    });
-
-    videoReadStream
-      .on('open', () => {
-        videoReadStream.pipe(response).on('error', (error) => {
-          console.error('Unexpected error during video streaming pipe', error);
-        });
-      })
-      .on('error', (streamError) => {
-        console.error('Unexpected error while video streaming', streamError);
-      });
+    response.json(videoSummaries);
   } catch (error) {
-    console.error('Unexpected error while handling video stream', error);
-    response.sendStatus(500);
+    console.error('Error fetching videos', error);
+    response.status(500).json({ error: 'Failed to fetch videos' });
   }
 });
+
+/**
+ * GET /api/videos/:videoId
+ * Return detailed information about a single video, including a stream URL
+ * that the frontend can use for the <video> tag.
+ */
+videoRouter.get('/:videoId', async (request: Request, response: Response) => {
+  try {
+    const videoIdentifier = Number(request.params.videoId);
+
+    if (Number.isNaN(videoIdentifier)) {
+      response.status(400).json({ error: 'Invalid video identifier' });
+      return;
+    }
+
+    const videoRecord = await getVideoById(videoIdentifier);
+
+    if (!videoRecord) {
+      response.status(404).json({ error: 'Video not found' });
+      return;
+    }
+
+    const basePath = '/api/videos';
+    const streamUrl = `${basePath}/${videoRecord.id}/stream`;
+
+    response.json({
+      id: videoRecord.id,
+      title: videoRecord.title,
+      description: videoRecord.description,
+      thumbnailUrl: videoRecord.thumbnailUrl,
+      genres: videoRecord.genres,
+      releaseYear: videoRecord.releaseYear,
+      ageRating: videoRecord.ageRating,
+      streamUrl,
+    });
+  } catch (error) {
+    console.error('Error fetching video by identifier', error);
+    response.status(500).json({ error: 'Failed to fetch video' });
+  }
+});
+
+/**
+ * GET /api/videos/:videoId/stream
+ * Stream the video file corresponding to this video identifier.
+ */
+videoRouter.get(
+  '/:videoId/stream',
+  async (request: Request, response: Response) => {
+    try {
+      const mediaDirectory: string = process.env.MEDIA_DIRECTORY || './media';
+      const videoIdentifier = Number(request.params.videoId);
+
+      if (Number.isNaN(videoIdentifier)) {
+        response.status(400).json({ error: 'Invalid video identifier' });
+        return;
+      }
+
+      const videoRecord = await getVideoById(videoIdentifier);
+
+      if (!videoRecord) {
+        response.status(404).json({ error: 'Video not found' });
+        return;
+      }
+
+      const videoFilePath: string = path.join(
+        mediaDirectory,
+        videoRecord.videoPath,
+      );
+
+      if (!fs.existsSync(videoFilePath)) {
+        response.status(404).json({ error: 'Video file not found on server' });
+        return;
+      }
+
+      const rangeHeader: string | undefined = request.headers.range;
+
+      if (!rangeHeader) {
+        response.status(400).send('Range header is required');
+        return;
+      }
+
+      const videoFileStat = fs.statSync(videoFilePath);
+      const videoFileSize: number = videoFileStat.size;
+
+      const bytesPrefix: string = 'bytes=';
+
+      if (!rangeHeader.startsWith(bytesPrefix)) {
+        response.status(400).send('Invalid Range header format');
+        return;
+      }
+
+      const rangeParts: string = rangeHeader.replace(bytesPrefix, '');
+      const [startString, endString] = rangeParts.split('-');
+
+      const startByte: number = Number(startString);
+      const chunkSize: number = 1_000_000; // 1 MB chunk size
+
+      let endByte: number;
+
+      if (endString) {
+        endByte = Number(endString);
+      } else {
+        endByte = Math.min(startByte + chunkSize, videoFileSize - 1);
+      }
+
+      if (startByte >= videoFileSize || endByte >= videoFileSize) {
+        response
+          .status(416)
+          .send(
+            `Requested Range Not Satisfiable: ${startByte}-${endByte}/${videoFileSize}`,
+          );
+        return;
+      }
+
+      const contentLength: number = endByte - startByte + 1;
+
+      response.writeHead(206, {
+        'Content-Range': `bytes ${startByte}-${endByte}/${videoFileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': contentLength,
+        'Content-Type': 'video/mp4',
+      });
+
+      const videoReadStream = fs.createReadStream(videoFilePath, {
+        start: startByte,
+        end: endByte,
+      });
+
+      videoReadStream.on('open', () => {
+        videoReadStream.pipe(response);
+      });
+
+      videoReadStream.on('error', (streamError) => {
+        console.error('Error while streaming video', streamError);
+        response.sendStatus(500);
+      });
+    } catch (error) {
+      console.error('Unexpected error while handling video stream', error);
+      response.sendStatus(500);
+    }
+  },
+);
