@@ -1,10 +1,8 @@
-import { useState } from 'react';
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
 import './App.css';
 import { Link, Route, Routes } from 'react-router-dom';
 import { HomePage } from './components/HomePage';
-import { VideoDetailPage } from './components/VideoDetailPage';
+import { VideoDetailPage } from './pages/VideoDetailPage';
+import { PlayerPage } from './pages/PlayerPage';
 
 function App() {
   return (
@@ -19,7 +17,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/video/:videoId" element={<VideoDetailPage />} />
-          {/* <Route path="/watch/:videoId" /> */}
+          <Route path="/watch/:videoId" element={<PlayerPage />} />
         </Routes>
       </main>
     </div>
