@@ -47,7 +47,7 @@ export function VideoDetailPage() {
   }
 
   return (
-    <div>
+    <div className="video-detail-page">
       <h2>{videoDetail.title}</h2>
       {videoDetail.thumbnailUrl && (
         <img
@@ -77,7 +77,7 @@ export function VideoDetailPage() {
 
       {videoDetail.description && <p>{videoDetail.description}</p>}
 
-      <div>
+      <div className="video-detail-actions">
         <Link to={`/watch/${videoDetail.id}`}>Play</Link>
         <Link to={'/'}>Back to Home</Link>
       </div>

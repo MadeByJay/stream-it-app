@@ -1,7 +1,7 @@
 import { use, useEffect, useState } from 'react';
 import type { VideoSummary } from '../types/video';
 import { fetchVideoList } from '../api/videoApi';
-import { VideoCard } from './VideoCard';
+import { VideoCard } from '../components/VideoCard';
 
 export function HomePage() {
   const [videoList, setVideoList] = useState<VideoSummary[]>([]);
@@ -42,7 +42,7 @@ export function HomePage() {
   return (
     <div>
       <h2>Browse</h2>
-      <div>
+      <div className="video-grid">
         {videoList.map((video) => {
           return <VideoCard key={video.id} video={video} />;
         })}

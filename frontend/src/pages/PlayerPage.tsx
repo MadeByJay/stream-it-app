@@ -50,7 +50,7 @@ export function PlayerPage() {
   const streamUrl = videoDetail.streamUrl;
 
   return (
-    <div>
+    <div className="player-page">
       <h2>{videoDetail.title}</h2>
 
       <video
@@ -63,7 +63,7 @@ export function PlayerPage() {
         Your browser does not support HTML5 video
       </video>
 
-      <div>
+      <div className="player-actions">
         <Link to={`/video/${videoDetail}`}>Back to details</Link>
         <span style={{ marginLeft: '1rem' }}>
           <Link to={'/'}>Back to home</Link>
