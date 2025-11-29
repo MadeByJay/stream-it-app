@@ -4,6 +4,7 @@ import viteLogo from '/vite.svg';
 import './App.css';
 import { Link, Route, Routes } from 'react-router-dom';
 import { HomePage } from './components/HomePage';
+import { VideoDetailPage } from './components/VideoDetailPage';
 
 function App() {
   return (
@@ -17,7 +18,7 @@ function App() {
       <main>
         <Routes>
           <Route path="/" element={<HomePage />} />
-          {/* <Route path="/video/:videoId" /> */}
+          <Route path="/video/:videoId" element={<VideoDetailPage />} />
           {/* <Route path="/watch/:videoId" /> */}
         </Routes>
       </main>
