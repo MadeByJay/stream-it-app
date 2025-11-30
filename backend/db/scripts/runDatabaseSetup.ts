@@ -1,7 +1,7 @@
 import fs from 'fs';
 import dotenv from 'dotenv';
 import path from 'path';
-import { databasePool } from '../databasePool';
+import { databasePool } from '../../src/db/databasePool';
 
 dotenv.config();
 

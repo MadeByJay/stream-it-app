@@ -2,6 +2,8 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { videoRouter } from './routes/videoRoutes';
+import { authRouter } from './routes/authRoutes';
+import { meRouter } from './routes/meRoutes';
 
 dotenv.config();
 
@@ -17,6 +19,8 @@ app.get('/health', (request, response) => {
   response.json({ status: 'ok' });
 });
 app.use('/api/videos', videoRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/me', meRouter);
 
 app.use((request, response, next) => {
   console.log('404 for path:', request.method, request.url);
