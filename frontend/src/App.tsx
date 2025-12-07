@@ -7,6 +7,9 @@ import { RequireAuth } from './auth/RequireAuth';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { useAuth } from './auth/AuthContext';
+import { RequireAdmin } from './auth/RequireAdmin';
+import { AdminVideoListPage } from './pages/admin/AdminVideoListPage';
+import { AdminVideoFormPage } from './pages/admin/AdminVideoFormPage';
 
 function App() {
   const { user, logout } = useAuth();
@@ -15,14 +18,25 @@ function App() {
     <div className="app-root">
       <header className="app-header">
         <Link to="/" className="app-logo">
-          MiniFlix
+          StreamIt
         </Link>
 
-        <div style={{ marginLeft: 'auto' }}>
+        <div
+          style={{
+            marginLeft: 'auto',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+          }}
+        >
+          {user && user.isAdmin && (
+            <Link to="/admin/videos" style={{ fontSize: '0.9rem' }}>
+              Admin
+            </Link>
+          )}
+
           {user ? (
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
-            >
+            <>
               <span style={{ fontSize: '0.9rem' }}>{user.email}</span>
               <button
                 type="button"
@@ -39,12 +53,9 @@ function App() {
               >
                 Sign out
               </button>
-            </div>
+            </>
           ) : (
-            <Link
-              to="/login"
-              style={{ marginLeft: '1rem', fontSize: '0.9rem' }}
-            >
+            <Link to="/login" style={{ fontSize: '0.9rem' }}>
               Sign In
             </Link>
           )}
@@ -63,8 +74,34 @@ function App() {
               </RequireAuth>
             }
           />
+
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+
+          <Route
+            path="/admin/videos"
+            element={
+              <RequireAdmin>
+                <AdminVideoListPage />
+              </RequireAdmin>
+            }
+          />
+          <Route
+            path="/admin/videos/new"
+            element={
+              <RequireAdmin>
+                <AdminVideoFormPage />
+              </RequireAdmin>
+            }
+          />
+          <Route
+            path="/admin/videos/:videoId/edit"
+            element={
+              <RequireAdmin>
+                <AdminVideoFormPage />
+              </RequireAdmin>
+            }
+          />
         </Routes>
       </main>
     </div>

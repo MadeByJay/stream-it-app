@@ -15,3 +15,14 @@ export interface VideoDetail {
   ageRating: string | null;
   streamUrl: string;
 }
+
+export interface AdminVideo {
+  id: number;
+  title: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  videoPath: string;
+  releaseYear: number | null;
+  ageRating: string | null;
+  genres: string[];
+}
