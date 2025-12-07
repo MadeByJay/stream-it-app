@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { VideoDetail } from '../types/video';
 import { fetchVideoDetail, fetchVideoList } from '../api/videoApi';
+import { useAuth } from '../auth/AuthContext';
+import { addVideoToMyList, removeVideoFromMyList } from '../api/userVideoApi';
 
 export function VideoDetailPage() {
   const { videoId } = useParams<{ videoId: string }>();
@@ -9,6 +11,11 @@ export function VideoDetailPage() {
   const [videoDetail, setVideoDetail] = useState<VideoDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const [isInMyList, setIsInMyList] = useState<boolean>(false);
+  const [isUpdatingList, setIsUpdatingList] = useState<boolean>(false);
+
+  const { user, token } = useAuth();
 
   useEffect(() => {
     async function loadVideoDetail() {
@@ -46,6 +53,28 @@ export function VideoDetailPage() {
     return <div>Video not found</div>;
   }
 
+  // Simple client-side My List state tracking:
+  async function handleToggleMyList() {
+    if (!user || !token || !videoDetail) {
+      return;
+    }
+
+    try {
+      setIsUpdatingList(true);
+      if (isInMyList) {
+        await removeVideoFromMyList(token, videoDetail.id);
+        setIsInMyList(false);
+      } else {
+        await addVideoToMyList(token, videoDetail.id);
+        setIsInMyList(true);
+      }
+    } catch (error) {
+      console.error('Failed to update My List', error);
+    } finally {
+      setIsUpdatingList(false);
+    }
+  }
+
   return (
     <div className="video-detail-page">
       <h2>{videoDetail.title}</h2>
@@ -78,8 +107,34 @@ export function VideoDetailPage() {
       {videoDetail.description && <p>{videoDetail.description}</p>}
 
       <div className="video-detail-actions">
-        <Link to={`/watch/${videoDetail.id}`}>Play</Link>
-        <Link to={'/'}>Back to Home</Link>
+        <Link to={`/watch/${videoDetail.id}`} className="play-button">
+          Play
+        </Link>
+
+        {user && (
+          <button
+            type="button"
+            onClick={handleToggleMyList}
+            disabled={isUpdatingList}
+            style={{
+              padding: '0.45rem 1rem',
+              borderRadius: '999px',
+              border: 'none',
+              backgroundColor: '#333',
+              color: '#fff',
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+            }}
+          >
+            {isUpdatingList
+              ? 'Updating...'
+              : isInMyList
+                ? 'Remove from My List'
+                : 'Add to My List'}
+          </button>
+        )}
+
+        <Link to="/">Back to home</Link>
       </div>
     </div>
   );
