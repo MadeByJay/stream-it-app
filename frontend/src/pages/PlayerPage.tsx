@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchVideoDetail } from '../api/videoApi';
 import type { VideoDetail } from '../types/video';
+import { updateWatchHistory } from '../api/userVideoApi';
+import { useAuth } from '../auth/AuthContext';
 
 export function PlayerPage() {
   const { videoId } = useParams<{ videoId: string }>();
@@ -10,6 +12,10 @@ export function PlayerPage() {
   const [videoDetail, setVideoDetail] = useState<VideoDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lastSavedPositionSeconds, setLastSavedPositionSeconds] =
+    useState<number>(0);
+
+  const { user, token } = useAuth();
 
   useEffect(() => {
     async function loadVideoDetail() {
@@ -36,6 +42,28 @@ export function PlayerPage() {
     loadVideoDetail();
   }, [videoId]);
 
+  async function handleTimeUpdate() {
+    if (!user || !token || !videoDetail || !videoElementRef.current) {
+      return;
+    }
+
+    const currentPositionSeconds = Math.floor(
+      videoElementRef.current.currentTime,
+    );
+
+    // Only send an update every 15 seconds of progress
+    if (currentPositionSeconds - lastSavedPositionSeconds < 15) {
+      return;
+    }
+
+    try {
+      await updateWatchHistory(token, videoDetail.id, currentPositionSeconds);
+      setLastSavedPositionSeconds(currentPositionSeconds);
+    } catch (error) {
+      console.error('Failed to update watch history', error);
+    }
+  }
+
   if (isLoading) {
     return <div>Loading video...</div>;
   }
@@ -59,14 +87,15 @@ export function PlayerPage() {
         controls
         autoPlay
         style={{ width: '100%', maxWidth: '960px' }}
+        onTimeUpdate={handleTimeUpdate}
       >
-        Your browser does not support HTML5 video
+        Your browser does not support HTML5 video.
       </video>
 
       <div className="player-actions">
-        <Link to={`/video/${videoDetail}`}>Back to details</Link>
+        <Link to={`/video/${videoDetail.id}`}>Back to details</Link>
         <span style={{ marginLeft: '1rem' }}>
-          <Link to={'/'}>Back to home</Link>
+          <Link to="/">Back to home</Link>
         </span>
       </div>
     </div>
