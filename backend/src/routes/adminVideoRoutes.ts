@@ -8,8 +8,11 @@ import {
   updateVideo,
   deleteVideo,
 } from '../modules/videos/videoRepository';
+import multer from 'multer';
+import { uploadVideoFile } from '../modules/videos/videoStorageService';
 
 export const adminVideoRouter: Router = Router();
+const multerUpload = multer({ storage: multer.memoryStorage() });
 
 adminVideoRouter.use(requireAuth, requireAdmin);
 
@@ -56,6 +59,40 @@ adminVideoRouter.get(
 );
 
 /**
+ * POST /api/admin/videos/upload
+ * Accepts multipart/form-data with a single "file" field.
+ * Returns { videoPath } that can be used in the admin "Video Path" field.
+ */
+adminVideoRouter.post(
+  '/upload',
+  multerUpload.single('file'),
+  async (request: Request, response: Response) => {
+    try {
+      const uploadedFile = request.file;
+
+      if (!uploadedFile) {
+        response
+          .status(400)
+          .json({ error: "No file was provided. Expected field 'file'." });
+        return;
+      }
+
+      const originalFileName = uploadedFile.originalname;
+      const fileBuffer = uploadedFile.buffer;
+
+      const videoPath = await uploadVideoFile(originalFileName, fileBuffer);
+
+      response.status(201).json({
+        videoPath,
+      });
+    } catch (error) {
+      console.error('Error uploading video file', error);
+      response.status(500).json({ error: 'Failed to upload video file' });
+    }
+  },
+);
+
+/**
  * POST /api/admin/videos
  * Body: { title, description?, thumbnailUrl?, videoPath, releaseYear?, ageRating?, genreIds? }
  */
@@ -70,6 +107,7 @@ adminVideoRouter.post('/', async (request: Request, response: Response) => {
       ageRating,
       genreIds,
     } = request.body as {
+      //TODO - create type
       title?: string;
       description?: string | null;
       thumbnailUrl?: string | null;
