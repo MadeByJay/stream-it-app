@@ -5,6 +5,7 @@ import { getAllVideos, getVideoById } from '../modules/videos/videoRepository';
 import {
   getVideoStorageMode,
   getVideoStreamUrl,
+  getVideoThumbnailUrl,
 } from '../modules/videos/videoStorageService';
 
 export const videoRouter: Router = Router();
@@ -17,12 +18,17 @@ videoRouter.get('/', async (request: Request, response: Response) => {
   try {
     const videoRecords = await getAllVideos();
 
-    const videoSummaries = videoRecords.map((videoRecord) => ({
-      id: videoRecord.id,
-      title: videoRecord.title,
-      thumbnailUrl: videoRecord.thumbnailUrl,
-      genres: videoRecord.genres,
-    }));
+    const videoSummaries = await Promise.all(
+      videoRecords.map(async (videoRecord) => {
+        const thumbnailUrl = await getVideoThumbnailUrl(videoRecord);
+        return {
+          id: videoRecord.id,
+          title: videoRecord.title,
+          thumbnailUrl,
+          genres: videoRecord.genres,
+        };
+      }),
+    );
 
     response.json(videoSummaries);
   } catch (error) {
@@ -53,12 +59,13 @@ videoRouter.get('/:videoId', async (request: Request, response: Response) => {
     }
 
     const streamUrl = await getVideoStreamUrl(videoRecord);
+    const thumbnailUrl = await getVideoThumbnailUrl(videoRecord);
 
     response.json({
       id: videoRecord.id,
       title: videoRecord.title,
       description: videoRecord.description,
-      thumbnailUrl: videoRecord.thumbnailUrl,
+      thumbnailUrl,
       genres: videoRecord.genres,
       releaseYear: videoRecord.releaseYear,
       ageRating: videoRecord.ageRating,

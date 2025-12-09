@@ -119,7 +119,7 @@ export async function deleteAdminVideo(
 export async function uploadAdminVideoFile(
   token: string,
   file: File,
-): Promise<{ videoPath: string }> {
+): Promise<{ videoPath: string; thumbnailPath: string }> {
   const formData = new FormData();
   formData.append('file', file);
 
@@ -132,5 +132,7 @@ export async function uploadAdminVideoFile(
     body: formData,
   });
 
-  return handleJsonResponse<{ videoPath: string }>(response);
+  return handleJsonResponse<{ videoPath: string; thumbnailPath: string }>(
+    response,
+  );
 }

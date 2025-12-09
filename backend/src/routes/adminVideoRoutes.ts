@@ -9,7 +9,7 @@ import {
   deleteVideo,
 } from '../modules/videos/videoRepository';
 import multer from 'multer';
-import { uploadVideoFile } from '../modules/videos/videoStorageService';
+import { uploadVideoWithThumbnail } from '../modules/videos/videoStorageService';
 
 export const adminVideoRouter: Router = Router();
 const multerUpload = multer({ storage: multer.memoryStorage() });
@@ -80,10 +80,14 @@ adminVideoRouter.post(
       const originalFileName = uploadedFile.originalname;
       const fileBuffer = uploadedFile.buffer;
 
-      const videoPath = await uploadVideoFile(originalFileName, fileBuffer);
+      const { videoPath, thumbnailPath } = await uploadVideoWithThumbnail(
+        originalFileName,
+        fileBuffer,
+      );
 
       response.status(201).json({
         videoPath,
+        thumbnailPath,
       });
     } catch (error) {
       console.error('Error uploading video file', error);

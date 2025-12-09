@@ -16,6 +16,9 @@ const port = Number(process.env.PORT) || 5000;
 
 app.use(express.json());
 
+const mediaDirectory: string = process.env.MEDIA_DIRECTORY || './media';
+app.use('/media', express.static(mediaDirectory));
+
 app.get('/health', (request, response) => {
   response.json({ status: 'ok' });
 });

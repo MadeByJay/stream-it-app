@@ -160,6 +160,7 @@ export function AdminVideoFormPage() {
 
       const result = await uploadAdminVideoFile(token, selectedFile);
       setVideoPath(result.videoPath);
+      setThumbnailUrl(result.thumbnailPath);
       setUploadMessage(
         `Uploaded successfully. Video path set to: ${result.videoPath}`,
       );
