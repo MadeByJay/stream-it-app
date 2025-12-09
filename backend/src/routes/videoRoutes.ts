@@ -2,6 +2,10 @@ import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { getAllVideos, getVideoById } from '../modules/videos/videoRepository';
+import {
+  getVideoStorageMode,
+  getVideoStreamUrl,
+} from '../modules/videos/videoStorageService';
 
 export const videoRouter: Router = Router();
 
@@ -48,8 +52,7 @@ videoRouter.get('/:videoId', async (request: Request, response: Response) => {
       return;
     }
 
-    const basePath = '/api/videos';
-    const streamUrl = `${basePath}/${videoRecord.id}/stream`;
+    const streamUrl = await getVideoStreamUrl(videoRecord);
 
     response.json({
       id: videoRecord.id,
@@ -69,12 +72,23 @@ videoRouter.get('/:videoId', async (request: Request, response: Response) => {
 
 /**
  * GET /api/videos/:videoId/stream
- * Stream the video file corresponding to this video identifier.
+ * Filesystem-only streaming endpoint.
+ * In MinIO mode, the frontend should use the MinIO presigned URL instead.
  */
 videoRouter.get(
   '/:videoId/stream',
   async (request: Request, response: Response) => {
     try {
+      const storageMode = getVideoStorageMode();
+
+      if (storageMode === 'minio') {
+        response.status(400).json({
+          error:
+            'Streaming via /stream is not available in MinIO mode. Use streamUrl.',
+        });
+        return;
+      }
+
       const mediaDirectory: string = process.env.MEDIA_DIRECTORY || './media';
       const videoIdentifier = Number(request.params.videoId);
 
@@ -121,7 +135,7 @@ videoRouter.get(
       const [startString, endString] = rangeParts.split('-');
 
       const startByte: number = Number(startString);
-      const chunkSize: number = 1_000_000; // 1 MB chunk size
+      const chunkSize: number = 1_000_000; // 1 MB
 
       let endByte: number;
 
