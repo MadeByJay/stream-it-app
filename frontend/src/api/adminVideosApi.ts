@@ -116,3 +116,21 @@ export async function deleteAdminVideo(
     );
   }
 }
+export async function uploadAdminVideoFile(
+  token: string,
+  file: File,
+): Promise<{ videoPath: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch('/api/admin/videos/upload', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      // Note: do NOT set Content-Type manually; browser will set correct multipart boundary
+    },
+    body: formData,
+  });
+
+  return handleJsonResponse<{ videoPath: string }>(response);
+}

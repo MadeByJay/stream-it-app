@@ -6,6 +6,7 @@ import {
   createAdminVideo,
   fetchAdminVideoDetail,
   updateAdminVideo,
+  uploadAdminVideoFile,
 } from '../../api/adminVideosApi';
 
 export function AdminVideoFormPage() {
@@ -26,6 +27,10 @@ export function AdminVideoFormPage() {
   const [isLoading, setIsLoading] = useState<boolean>(isEditMode);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isEditMode || !videoId || !token) {
@@ -64,17 +69,23 @@ export function AdminVideoFormPage() {
 
   function parseGenreIdentifiers(input: string): number[] | undefined {
     const trimmed = input.trim();
+
     if (!trimmed) {
       return undefined;
     }
+
     const parts = trimmed.split(',').map((part) => part.trim());
+
     const identifiers: number[] = [];
+
     for (const part of parts) {
       const value = Number(part);
+
       if (!Number.isNaN(value)) {
         identifiers.push(value);
       }
     }
+
     return identifiers;
   }
 
@@ -127,6 +138,36 @@ export function AdminVideoFormPage() {
       setErrorMessage('Failed to save video. Check console for details.');
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleFileUpload(event: React.MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+
+    if (!token) {
+      setUploadMessage('You must be logged in as an admin to upload.');
+      return;
+    }
+
+    if (!selectedFile) {
+      setUploadMessage('Please choose a file first.');
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      setUploadMessage('Uploading...');
+
+      const result = await uploadAdminVideoFile(token, selectedFile);
+      setVideoPath(result.videoPath);
+      setUploadMessage(
+        `Uploaded successfully. Video path set to: ${result.videoPath}`,
+      );
+    } catch (error) {
+      console.error('Failed to upload video file', error);
+      setUploadMessage('File upload failed. See console for details.');
+    } finally {
+      setIsUploading(false);
     }
   }
 
@@ -189,6 +230,38 @@ export function AdminVideoFormPage() {
             required
           />
         </label>
+
+        <div className="admin-form-row">
+          <label style={{ flex: 1 }}>
+            Upload file
+            <input
+              type="file"
+              accept="video/*"
+              onChange={(event) => {
+                const fileList = event.target.files;
+                setUploadMessage(null);
+                if (fileList && fileList.length > 0) {
+                  setSelectedFile(fileList[0]);
+                } else {
+                  setSelectedFile(null);
+                }
+              }}
+            />
+          </label>
+
+          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <button
+              type="button"
+              className="admin-primary-button"
+              onClick={handleFileUpload}
+              disabled={isUploading || !selectedFile}
+            >
+              {isUploading ? 'Uploading...' : 'Upload file'}
+            </button>
+          </div>
+        </div>
+
+        {uploadMessage && <div className="admin-error">{uploadMessage}</div>}
 
         <div className="admin-form-row">
           <label>
